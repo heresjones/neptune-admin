@@ -1,37 +1,55 @@
 import React, { useState } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Button, Container, Typography, useTheme } from "@mui/material";
+import {
+  Button,
+  Container,
+  Typography,
+  CircularProgress,
+  useTheme,
+} from "@mui/material";
 import axios from "axios";
 
-interface User {
-  id: string;
-  Email: string;
-  SignupTime: string;
-  UserAgent: string;
-  IPAddress: string;
-  Country?: string;
-  State?: string;
-  County?: string;
-}
-
 const UserTable: React.FC = () => {
-  const [rows, setRows] = useState<User[]>([]);
-  const theme = useTheme(); // Access theme for color usage
+  const [rows, setRows] = useState([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const theme = useTheme();
 
   const fetchData = async () => {
+    setIsLoadingData(true);
     try {
       const response = await axios.get(
         "https://9rf6bjk1o9.execute-api.us-east-1.amazonaws.com/Prod/email-read"
       );
-
-      const dataWithIds = response.data.map((item: User, index: number) => ({
+      const dataWithIds = response.data.map((item: any, index: number) => ({
         ...item,
         id: index + 1,
       }));
-
       setRows(dataWithIds);
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await axios.get(
+        "https://9rf6bjk1o9.execute-api.us-east-1.amazonaws.com/Prod/generate-signed-url"
+      );
+      const { url } = response.data;
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "full_dataset.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error generating signed URL:", error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -62,12 +80,14 @@ const UserTable: React.FC = () => {
 
   return (
     <Container
+      maxWidth={false}
       sx={{
         height: "100vh",
         display: "flex",
         flexDirection: "column",
         backgroundColor: theme.palette.background.default,
         color: theme.palette.text.primary,
+        padding: 0,
       }}
     >
       <Typography
@@ -76,30 +96,68 @@ const UserTable: React.FC = () => {
         sx={{
           fontFamily: "Poppins, sans-serif",
           color: theme.palette.text.primary,
+          padding: "16px",
         }}
       >
         Users
       </Typography>
-      <Button
-        variant="contained"
-        onClick={fetchData}
-        sx={{
-          backgroundColor: "#40CFE2",
-          color: "#FFFFFF",
-          fontFamily: "Poppins, sans-serif",
-          "&:hover": {
-            backgroundColor: "#3DAFB7",
-          },
-          width: 150,
-        }}
-      >
-        Load Data
-      </Button>
       <div
         style={{
-          height: "calc(100vh - 100px)",
+          display: "flex",
+          justifyContent: "flex-start",
+          gap: "16px",
+          padding: "16px",
+        }}
+      >
+        {isLoadingData ? (
+          <CircularProgress
+            size={24}
+            sx={{ margin: "auto", color: "#40CFE2" }}
+          />
+        ) : (
+          <Button
+            variant="contained"
+            onClick={fetchData}
+            sx={{
+              backgroundColor: "#40CFE2",
+              color: "#FFFFFF",
+              fontFamily: "Poppins, sans-serif",
+              "&:hover": {
+                backgroundColor: "#3DAFB7",
+              },
+              width: 150,
+            }}
+          >
+            Load Data
+          </Button>
+        )}
+        {isDownloading ? (
+          <CircularProgress
+            size={24}
+            sx={{ margin: "auto", color: "#40CFE2" }}
+          />
+        ) : (
+          <Button
+            variant="contained"
+            onClick={handleDownload}
+            sx={{
+              backgroundColor: "#40CFE2",
+              color: "#FFFFFF",
+              fontFamily: "Poppins, sans-serif",
+              "&:hover": {
+                backgroundColor: "#3DAFB7",
+              },
+              width: 150,
+            }}
+          >
+            Download CSV
+          </Button>
+        )}
+      </div>
+      <div
+        style={{
+          height: "calc(100vh - 150px)",
           width: "100%",
-          marginTop: 20,
         }}
       >
         <DataGrid
@@ -115,8 +173,8 @@ const UserTable: React.FC = () => {
             color: theme.palette.text.primary,
             backgroundColor: theme.palette.background.paper,
             "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "#40CFE2",
-              color: "#FFFFFF",
+              backgroundColor: theme.palette.grey[200],
+              color: theme.palette.text.primary,
               fontFamily: "Poppins, sans-serif",
             },
             "& .MuiDataGrid-row:hover": {
