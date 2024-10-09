@@ -26,13 +26,24 @@ const SignupChart: React.FC = () => {
 
   const theme = useTheme();
 
-  const generateEmptyData = (days: number) => {
+  const generateEmptyData = (range: string) => {
     const result = [];
-    const today = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      result.push({ date: date.toLocaleDateString(), signups: 0 });
+    const now = new Date();
+    if (range === "24h") {
+      // Generate data points for each hour of the last 24 hours
+      for (let i = 23; i >= 0; i--) {
+        const date = new Date(now);
+        date.setHours(now.getHours() - i);
+        result.push({ date: `${date.getHours()}:00`, signups: 0 });
+      }
+    } else {
+      // Generate data points for each day of the range
+      const days = parseInt(range, 10);
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(now.getDate() - i);
+        result.push({ date: date.toLocaleDateString(), signups: 0 });
+      }
     }
     return result;
   };
@@ -44,22 +55,12 @@ const SignupChart: React.FC = () => {
         `https://9rf6bjk1o9.execute-api.us-east-1.amazonaws.com/Prod/email-read`
       );
       const data = response.data.map((item: any) => ({
-        date: new Date(item.SignupTime).toLocaleDateString(),
+        timestamp: new Date(item.SignupTime),
         signups: 1,
       }));
 
-      const aggregatedData = data.reduce((acc: any, curr: any) => {
-        const existing = acc.find((item: any) => item.date === curr.date);
-        if (existing) {
-          existing.signups += 1;
-        } else {
-          acc.push({ date: curr.date, signups: 1 });
-        }
-        return acc;
-      }, []);
-
-      setAllSignupData(aggregatedData); // Cache the full dataset
-      filterDataByRange(aggregatedData, dateRange); // Filter data for the current date range
+      setAllSignupData(data); // Cache the full dataset with timestamps for future filtering
+      filterDataByRange(data, dateRange); // Filter data for the current date range
     } catch (error) {
       console.error("Error fetching signup data:", error);
     }
@@ -67,11 +68,31 @@ const SignupChart: React.FC = () => {
   };
 
   const filterDataByRange = (data: any[], range: string) => {
-    const emptyData = generateEmptyData(parseInt(range, 10));
-    const mergedData = emptyData.map((emptyDay) => {
-      const existingDay = data.find((day: any) => day.date === emptyDay.date);
-      return existingDay ? existingDay : emptyDay;
+    const emptyData = generateEmptyData(range);
+    const mergedData = emptyData.map((emptyItem) => {
+      let filteredData;
+      if (range === "24h") {
+        // Filter data for the last 24 hours and group by hour
+        const hourKey = emptyItem.date;
+        filteredData = data.filter(
+          (item) =>
+            `${item.timestamp.getHours()}:00` === hourKey &&
+            item.timestamp > new Date(Date.now() - 24 * 60 * 60 * 1000)
+        );
+      } else {
+        // Filter data for the last 7, 30, or 180 days
+        const dayKey = emptyItem.date;
+        filteredData = data.filter(
+          (item) => item.timestamp.toLocaleDateString() === dayKey
+        );
+      }
+
+      return {
+        date: emptyItem.date,
+        signups: filteredData.length,
+      };
     });
+
     setFilteredSignupData(mergedData);
     setTotalSignups(mergedData.reduce((sum, item) => sum + item.signups, 0));
   };
@@ -109,7 +130,7 @@ const SignupChart: React.FC = () => {
           fontFamily: "Poppins, sans-serif",
         }}
       >
-        Daily User Signups
+        User Signups
       </Typography>
       <div
         style={{
@@ -133,6 +154,21 @@ const SignupChart: React.FC = () => {
           }}
         >
           Refresh Data
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => handleRangeChange("24h")}
+          sx={{
+            backgroundColor: dateRange === "24h" ? "#3DAFB7" : "#40CFE2",
+            color: "#FFFFFF",
+            fontFamily: "Poppins, sans-serif",
+            "&:hover": {
+              backgroundColor: "#3DAFB7",
+            },
+            width: 150,
+          }}
+        >
+          Last 24 Hours
         </Button>
         <Button
           variant="contained"
@@ -189,7 +225,8 @@ const SignupChart: React.FC = () => {
           textAlign: "left",
         }}
       >
-        Total Signups in the Last {dateRange} Days: {totalSignups}
+        Total Signups in the Last{" "}
+        {dateRange === "24h" ? "24 Hours" : `${dateRange} Days`}: {totalSignups}
       </Typography>
       {loading ? (
         <CircularProgress sx={{ margin: "20px" }} />
@@ -204,7 +241,7 @@ const SignupChart: React.FC = () => {
             <YAxis
               stroke={theme.palette.text.primary}
               domain={[0, yAxisMax]}
-              allowDecimals={false} // Ensure Y-axis displays discrete values
+              allowDecimals={false}
             />
             <Tooltip
               contentStyle={{

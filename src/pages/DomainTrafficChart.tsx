@@ -22,17 +22,32 @@ const DomainTrafficChart: React.FC = () => {
   const [allTrafficData, setAllTrafficData] = useState<any[]>([]);
   const [filteredTrafficData, setFilteredTrafficData] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState<string>("7");
-  const [totalVisits, setTotalVisits] = useState<number>(0);
+  const [totalUniqueVisits, setTotalUniqueVisits] = useState<number>(0);
 
   const theme = useTheme();
 
-  const generateEmptyData = (days: number) => {
+  const generateEmptyData = (range: string) => {
     const result = [];
-    const today = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getUTCDate() - i);
-      result.push({ date: date.toISOString().split("T")[0], visits: 0 });
+    const now = new Date();
+    if (range === "24h") {
+      // Generate data points for each hour of the last 24 hours in the user's local time
+      for (let i = 23; i >= 0; i--) {
+        const date = new Date(now);
+        date.setHours(now.getHours() - i);
+        const formattedHour = date.toLocaleTimeString([], {
+          hour: "numeric",
+          hour12: true,
+        });
+        result.push({ date: formattedHour, visits: 0 });
+      }
+    } else {
+      // Generate data points for each day of the range
+      const days = parseInt(range, 10);
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(now.getDate() - i);
+        result.push({ date: date.toLocaleDateString(), visits: 0 });
+      }
     }
     return result;
   };
@@ -43,23 +58,14 @@ const DomainTrafficChart: React.FC = () => {
       const response = await axios.get(
         `https://9rf6bjk1o9.execute-api.us-east-1.amazonaws.com/Prod/read-log-data`
       );
+
       const data = response.data.map((item: any) => ({
-        date: new Date(item.timestamp).toISOString().split("T")[0],
-        visits: 1,
+        timestamp: new Date(item.timestamp),
+        ip_address: item.ip_address,
       }));
 
-      const aggregatedData = data.reduce((acc: any, curr: any) => {
-        const existing = acc.find((item: any) => item.date === curr.date);
-        if (existing) {
-          existing.visits += 1;
-        } else {
-          acc.push({ date: curr.date, visits: 1 });
-        }
-        return acc;
-      }, []);
-
-      setAllTrafficData(aggregatedData);
-      filterDataByRange(aggregatedData, dateRange);
+      setAllTrafficData(data); // Cache the full dataset with timestamps for future filtering
+      filterDataByRange(data, dateRange); // Filter data for the current date range
     } catch (error) {
       console.error("Error fetching traffic data:", error);
     }
@@ -67,17 +73,44 @@ const DomainTrafficChart: React.FC = () => {
   };
 
   const filterDataByRange = (data: any[], range: string) => {
-    const emptyData = generateEmptyData(parseInt(range, 10));
-    const mergedData = emptyData.map((emptyDay) => {
-      const existingDay = data.find((day: any) => day.date === emptyDay.date);
-      return existingDay ? existingDay : emptyDay;
+    const emptyData = generateEmptyData(range);
+
+    const mergedData = emptyData.map((emptyItem) => {
+      let uniqueIPs = new Set();
+      if (range === "24h") {
+        // Filter data for the last 24 hours and group by hour in local time
+        data.forEach((item) => {
+          const localTime = item.timestamp.toLocaleTimeString([], {
+            hour: "numeric",
+            hour12: true,
+          });
+          if (
+            localTime === emptyItem.date &&
+            item.timestamp > new Date(Date.now() - 24 * 60 * 60 * 1000)
+          ) {
+            uniqueIPs.add(item.ip_address); // Track unique IPs
+          }
+        });
+      } else {
+        // Filter data for the last 7, 30, or 180 days
+        data.forEach((item) => {
+          const localDate = item.timestamp.toLocaleDateString();
+          if (localDate === emptyItem.date) {
+            uniqueIPs.add(item.ip_address); // Track unique IPs
+          }
+        });
+      }
+
+      return {
+        date: emptyItem.date,
+        visits: uniqueIPs.size, // Count of unique IP addresses
+      };
     });
+
     setFilteredTrafficData(mergedData);
-    const totalVisitsInRange = mergedData.reduce(
-      (sum, item) => sum + item.visits,
-      0
+    setTotalUniqueVisits(
+      mergedData.reduce((sum, item) => sum + item.visits, 0)
     );
-    setTotalVisits(totalVisitsInRange);
   };
 
   useEffect(() => {
@@ -85,11 +118,11 @@ const DomainTrafficChart: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    filterDataByRange(allTrafficData, dateRange);
+    filterDataByRange(allTrafficData, dateRange); // Update filtered data when the date range changes
   }, [dateRange, allTrafficData]);
 
   const handleRangeChange = (range: string) => {
-    setDateRange(range);
+    setDateRange(range); // This will trigger filtering without a new data fetch
   };
 
   const maxVisitValue =
@@ -140,9 +173,24 @@ const DomainTrafficChart: React.FC = () => {
         </Button>
         <Button
           variant="contained"
+          onClick={() => handleRangeChange("24h")}
+          sx={{
+            backgroundColor: dateRange === "24h" ? "#3DAFB7" : "#40CFE2",
+            color: "#FFFFFF",
+            fontFamily: "Poppins, sans-serif",
+            "&:hover": {
+              backgroundColor: "#3DAFB7",
+            },
+            width: 150,
+          }}
+        >
+          Last 24 Hours
+        </Button>
+        <Button
+          variant="contained"
           onClick={() => handleRangeChange("7")}
           sx={{
-            backgroundColor: dateRange === "7" ? "#3DAFB7" : "#40CFE2", // Highlight the selected button
+            backgroundColor: dateRange === "7" ? "#3DAFB7" : "#40CFE2",
             color: "#FFFFFF",
             fontFamily: "Poppins, sans-serif",
             "&:hover": {
@@ -157,7 +205,7 @@ const DomainTrafficChart: React.FC = () => {
           variant="contained"
           onClick={() => handleRangeChange("30")}
           sx={{
-            backgroundColor: dateRange === "30" ? "#3DAFB7" : "#40CFE2", // Highlight the selected button
+            backgroundColor: dateRange === "30" ? "#3DAFB7" : "#40CFE2",
             color: "#FFFFFF",
             fontFamily: "Poppins, sans-serif",
             "&:hover": {
@@ -172,7 +220,7 @@ const DomainTrafficChart: React.FC = () => {
           variant="contained"
           onClick={() => handleRangeChange("180")}
           sx={{
-            backgroundColor: dateRange === "180" ? "#3DAFB7" : "#40CFE2", // Highlight the selected button
+            backgroundColor: dateRange === "180" ? "#3DAFB7" : "#40CFE2",
             color: "#FFFFFF",
             fontFamily: "Poppins, sans-serif",
             "&:hover": {
@@ -193,7 +241,9 @@ const DomainTrafficChart: React.FC = () => {
           textAlign: "left",
         }}
       >
-        Total Visitors in the Last {dateRange} Days: {totalVisits}
+        Total Unique Visitors in the Last{" "}
+        {dateRange === "24h" ? "24 Hours" : `${dateRange} Days`}:{" "}
+        {totalUniqueVisits}
       </Typography>
       {loading ? (
         <CircularProgress sx={{ margin: "20px" }} />
@@ -208,7 +258,7 @@ const DomainTrafficChart: React.FC = () => {
             <YAxis
               stroke={theme.palette.text.primary}
               domain={[0, yAxisMax]}
-              allowDecimals={false} // Ensure Y-axis displays discrete values
+              allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
