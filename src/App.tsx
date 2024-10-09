@@ -19,7 +19,8 @@ import UserTable from "./pages/UserTable";
 import MapWithHeatmap from "./pages/MapWithHeatmap";
 import LoginScreen from "./pages/LoginScreen";
 import type { Navigation } from "@toolpad/core";
-import SignupChart from "./pages/SignupChart"; // Import the new chart page
+import SignupChart from "./pages/SignupChart";
+import DomainTrafficChart from "./pages/DomainTrafficChart";
 
 const customColors = {
   moodyBlue: "#40CFE2",
@@ -49,6 +50,12 @@ const NAVIGATION: Navigation = [
   },
   {
     kind: "page",
+    segment: "traffic",
+    title: "Domain Traffic",
+    icon: <PublicIcon sx={{ color: customColors.moodyBlue }} />,
+  },
+  {
+    kind: "page",
     segment: "map",
     title: "HeatMap(under construction)",
     icon: <PublicIcon sx={{ color: customColors.moodyBlue }} />,
@@ -56,8 +63,9 @@ const NAVIGATION: Navigation = [
 ];
 
 export default function DashboardLayoutSlots() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const storedDarkMode = localStorage.getItem("darkMode") === "true";
+  const initialAuthState = localStorage.getItem("isAuthenticated") === "true"; // Initialize directly from localStorage
+  const [isAuthenticated, setIsAuthenticated] = useState(initialAuthState);
   const [darkMode, setDarkMode] = useState(storedDarkMode);
 
   useEffect(() => {
@@ -91,11 +99,6 @@ export default function DashboardLayoutSlots() {
     setIsAuthenticated(true);
     localStorage.setItem("isAuthenticated", "true");
   };
-
-  useEffect(() => {
-    const authStatus = localStorage.getItem("isAuthenticated") === "true";
-    setIsAuthenticated(authStatus);
-  }, []);
 
   const removeLogoStyle = {
     ".MuiAppBar-root .MuiToolbar-root img": {
@@ -137,9 +140,9 @@ export default function DashboardLayoutSlots() {
                 <Route path="/users" element={<UserTable />} />
                 <Route path="/map" element={<MapWithHeatmap />} />
                 <Route path="/chart" element={<SignupChart />} />
+                <Route path="/traffic" element={<DomainTrafficChart />} />
                 <Route path="*" element={<Navigate to="/users" replace />} />
               </Routes>
-              ;
             </DashboardLayout>
           </Box>
         </AppProvider>

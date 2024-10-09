@@ -17,12 +17,12 @@ import {
 } from "@mui/material";
 import axios from "axios";
 
-const SignupChart: React.FC = () => {
+const DomainTrafficChart: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
-  const [allSignupData, setAllSignupData] = useState<any[]>([]); // Store the full dataset
-  const [filteredSignupData, setFilteredSignupData] = useState<any[]>([]); // Store the data based on date range
+  const [allTrafficData, setAllTrafficData] = useState<any[]>([]);
+  const [filteredTrafficData, setFilteredTrafficData] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState<string>("7");
-  const [totalSignups, setTotalSignups] = useState<number>(0);
+  const [totalVisits, setTotalVisits] = useState<number>(0);
 
   const theme = useTheme();
 
@@ -31,8 +31,8 @@ const SignupChart: React.FC = () => {
     const today = new Date();
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      result.push({ date: date.toLocaleDateString(), signups: 0 });
+      date.setDate(today.getUTCDate() - i);
+      result.push({ date: date.toISOString().split("T")[0], visits: 0 });
     }
     return result;
   };
@@ -41,27 +41,27 @@ const SignupChart: React.FC = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `https://9rf6bjk1o9.execute-api.us-east-1.amazonaws.com/Prod/email-read`
+        `https://9rf6bjk1o9.execute-api.us-east-1.amazonaws.com/Prod/read-log-data`
       );
       const data = response.data.map((item: any) => ({
-        date: new Date(item.SignupTime).toLocaleDateString(),
-        signups: 1,
+        date: new Date(item.timestamp).toISOString().split("T")[0],
+        visits: 1,
       }));
 
       const aggregatedData = data.reduce((acc: any, curr: any) => {
         const existing = acc.find((item: any) => item.date === curr.date);
         if (existing) {
-          existing.signups += 1;
+          existing.visits += 1;
         } else {
-          acc.push({ date: curr.date, signups: 1 });
+          acc.push({ date: curr.date, visits: 1 });
         }
         return acc;
       }, []);
 
-      setAllSignupData(aggregatedData); // Cache the full dataset
-      filterDataByRange(aggregatedData, dateRange); // Filter data for the current date range
+      setAllTrafficData(aggregatedData);
+      filterDataByRange(aggregatedData, dateRange);
     } catch (error) {
-      console.error("Error fetching signup data:", error);
+      console.error("Error fetching traffic data:", error);
     }
     setLoading(false);
   };
@@ -72,8 +72,12 @@ const SignupChart: React.FC = () => {
       const existingDay = data.find((day: any) => day.date === emptyDay.date);
       return existingDay ? existingDay : emptyDay;
     });
-    setFilteredSignupData(mergedData);
-    setTotalSignups(mergedData.reduce((sum, item) => sum + item.signups, 0));
+    setFilteredTrafficData(mergedData);
+    const totalVisitsInRange = mergedData.reduce(
+      (sum, item) => sum + item.visits,
+      0
+    );
+    setTotalVisits(totalVisitsInRange);
   };
 
   useEffect(() => {
@@ -81,16 +85,16 @@ const SignupChart: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    filterDataByRange(allSignupData, dateRange); // Update filtered data when the date range changes
-  }, [dateRange, allSignupData]);
+    filterDataByRange(allTrafficData, dateRange);
+  }, [dateRange, allTrafficData]);
 
   const handleRangeChange = (range: string) => {
-    setDateRange(range); // This will trigger filtering without a new data fetch
+    setDateRange(range);
   };
 
-  const maxSignupValue =
-    Math.max(...filteredSignupData.map((item) => item.signups)) || 1;
-  const yAxisMax = Math.ceil(maxSignupValue * 1.1);
+  const maxVisitValue =
+    Math.max(...filteredTrafficData.map((item) => item.visits)) || 1;
+  const yAxisMax = Math.ceil(maxVisitValue * 1.1);
 
   return (
     <Container
@@ -109,7 +113,7 @@ const SignupChart: React.FC = () => {
           fontFamily: "Poppins, sans-serif",
         }}
       >
-        Daily User Signups
+        Domain Traffic
       </Typography>
       <div
         style={{
@@ -121,7 +125,7 @@ const SignupChart: React.FC = () => {
       >
         <Button
           variant="contained"
-          onClick={fetchData} // Data fetch is triggered only when the button is clicked
+          onClick={fetchData}
           sx={{
             backgroundColor: "#9C27B0",
             color: "#FFFFFF",
@@ -138,7 +142,7 @@ const SignupChart: React.FC = () => {
           variant="contained"
           onClick={() => handleRangeChange("7")}
           sx={{
-            backgroundColor: dateRange === "7" ? "#3DAFB7" : "#40CFE2",
+            backgroundColor: dateRange === "7" ? "#3DAFB7" : "#40CFE2", // Highlight the selected button
             color: "#FFFFFF",
             fontFamily: "Poppins, sans-serif",
             "&:hover": {
@@ -153,7 +157,7 @@ const SignupChart: React.FC = () => {
           variant="contained"
           onClick={() => handleRangeChange("30")}
           sx={{
-            backgroundColor: dateRange === "30" ? "#3DAFB7" : "#40CFE2",
+            backgroundColor: dateRange === "30" ? "#3DAFB7" : "#40CFE2", // Highlight the selected button
             color: "#FFFFFF",
             fontFamily: "Poppins, sans-serif",
             "&:hover": {
@@ -168,7 +172,7 @@ const SignupChart: React.FC = () => {
           variant="contained"
           onClick={() => handleRangeChange("180")}
           sx={{
-            backgroundColor: dateRange === "180" ? "#3DAFB7" : "#40CFE2",
+            backgroundColor: dateRange === "180" ? "#3DAFB7" : "#40CFE2", // Highlight the selected button
             color: "#FFFFFF",
             fontFamily: "Poppins, sans-serif",
             "&:hover": {
@@ -189,13 +193,13 @@ const SignupChart: React.FC = () => {
           textAlign: "left",
         }}
       >
-        Total Signups in the Last {dateRange} Days: {totalSignups}
+        Total Visitors in the Last {dateRange} Days: {totalVisits}
       </Typography>
       {loading ? (
         <CircularProgress sx={{ margin: "20px" }} />
       ) : (
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={filteredSignupData}>
+          <LineChart data={filteredTrafficData}>
             <CartesianGrid
               stroke={theme.palette.divider}
               strokeDasharray="3 3"
@@ -215,7 +219,7 @@ const SignupChart: React.FC = () => {
             />
             <Line
               type="monotone"
-              dataKey="signups"
+              dataKey="visits"
               stroke={theme.palette.primary.main}
               strokeWidth={2}
               dot={{ r: 6, fill: theme.palette.primary.main }}
@@ -228,4 +232,4 @@ const SignupChart: React.FC = () => {
   );
 };
 
-export default SignupChart;
+export default DomainTrafficChart;

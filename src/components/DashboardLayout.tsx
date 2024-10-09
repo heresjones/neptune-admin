@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 import {
   AppBar,
   Box,
@@ -22,7 +23,9 @@ import {
 } from "@mui/icons-material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom"; // Replace Link with NavLink
+
+import PublicIcon from "@mui/icons-material/Public";
 
 const drawerWidth = 240;
 
@@ -41,6 +44,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const theme = useTheme();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const authStatus = localStorage.getItem("isAuthenticated") === "true";
+    setIsAuthenticated(authStatus);
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -59,7 +68,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
       <Toolbar />
       <Divider />
       <List>
-        <ListItem component={Link} to="/users">
+        <ListItem component={NavLink} to="/users">
           <ListItemIcon>
             <DashboardIcon
               sx={{
@@ -82,7 +91,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             }
           />
         </ListItem>
-        <ListItem component={Link} to="/chart">
+        <ListItem component={NavLink} to="/chart">
           <ListItemIcon>
             <DashboardIcon
               sx={{
@@ -105,8 +114,30 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             }
           />
         </ListItem>
-
-        <ListItem component={Link} to="/map">
+        <ListItem component={NavLink} to="/traffic">
+          <ListItemIcon>
+            <PublicIcon
+              sx={{
+                color: darkMode ? colors.moodyWhite : colors.moodyBlue,
+              }}
+            />
+          </ListItemIcon>
+          <ListItemText
+            primary={
+              <Typography
+                sx={{
+                  fontFamily: "Poppins, sans-serif",
+                  fontWeight: "bold",
+                  fontSize: "18px",
+                  color: darkMode ? colors.lightText : "#000000",
+                }}
+              >
+                Domain Traffic
+              </Typography>
+            }
+          />
+        </ListItem>
+        <ListItem component={NavLink} to="/map">
           <ListItemIcon>
             <ShoppingCartIcon
               sx={{

@@ -99,7 +99,7 @@ const UserTable: React.FC = () => {
           padding: "16px",
         }}
       >
-        Users
+        User Data
       </Typography>
       <div
         style={{
@@ -112,23 +112,24 @@ const UserTable: React.FC = () => {
         {isLoadingData ? (
           <CircularProgress
             size={24}
-            sx={{ margin: "auto", color: "#40CFE2" }}
+            sx={{ margin: "auto", color: "#9C27B0" }} // Purple color for loading indicator
           />
         ) : (
           <Button
             variant="contained"
             onClick={fetchData}
             sx={{
-              backgroundColor: "#40CFE2",
+              backgroundColor: "#9C27B0", // Purplish color for consistency
               color: "#FFFFFF",
               fontFamily: "Poppins, sans-serif",
               "&:hover": {
-                backgroundColor: "#3DAFB7",
+                backgroundColor: "#7B1FA2", // Darker purple on hover
               },
+              height: "40px", // Ensuring consistent height with SignupChart buttons
               width: 150,
             }}
           >
-            Load Data
+            Refresh Data
           </Button>
         )}
         {isDownloading ? (
@@ -141,12 +142,13 @@ const UserTable: React.FC = () => {
             variant="contained"
             onClick={handleDownload}
             sx={{
-              backgroundColor: "#40CFE2",
+              backgroundColor: "#40CFE2", // Matching color scheme for consistency
               color: "#FFFFFF",
               fontFamily: "Poppins, sans-serif",
               "&:hover": {
-                backgroundColor: "#3DAFB7",
+                backgroundColor: "#3DAFB7", // Hover color
               },
+              height: "40px", // Ensuring consistent height with SignupChart buttons
               width: 150,
             }}
           >
