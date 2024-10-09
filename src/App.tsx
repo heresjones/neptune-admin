@@ -17,8 +17,9 @@ import {
 } from "react-router-dom";
 import UserTable from "./pages/UserTable";
 import MapWithHeatmap from "./pages/MapWithHeatmap";
-import LoginScreen from "./pages/LoginScreen"; // Import the LoginScreen component
+import LoginScreen from "./pages/LoginScreen";
 import type { Navigation } from "@toolpad/core";
+import SignupChart from "./pages/SignupChart"; // Import the new chart page
 
 const customColors = {
   moodyBlue: "#40CFE2",
@@ -42,8 +43,14 @@ const NAVIGATION: Navigation = [
   },
   {
     kind: "page",
+    segment: "chart",
+    title: "Signup Chart",
+    icon: <DashboardIcon sx={{ color: customColors.moodyBlue }} />,
+  },
+  {
+    kind: "page",
     segment: "map",
-    title: "HeatMap",
+    title: "HeatMap(under construction)",
     icon: <PublicIcon sx={{ color: customColors.moodyBlue }} />,
   },
 ];
@@ -105,24 +112,20 @@ export default function DashboardLayoutSlots() {
   }
 
   return (
-    <Router>
-      <AppProvider
-        navigation={NAVIGATION}
-        theme={demoTheme}
-        branding={{
-          title: "Neptune Admin",
-          logo: null,
-        }}
-      >
-        <ThemeProvider theme={demoTheme}>
+    <ThemeProvider theme={demoTheme}>
+      <Router>
+        <AppProvider
+          navigation={NAVIGATION}
+          branding={{
+            title: "Neptune Admin",
+            logo: null,
+          }}
+        >
           <Box sx={removeLogoStyle}>
             <DashboardLayout
               slots={{
                 toolbarActions: () => (
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Typography sx={{ fontFamily: customFont, mr: 2 }}>
-                      Neptune Admin
-                    </Typography>
                     <IconButton onClick={handleDarkModeToggle} color="inherit">
                       {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
                     </IconButton>
@@ -133,12 +136,14 @@ export default function DashboardLayoutSlots() {
               <Routes>
                 <Route path="/users" element={<UserTable />} />
                 <Route path="/map" element={<MapWithHeatmap />} />
+                <Route path="/chart" element={<SignupChart />} />
                 <Route path="*" element={<Navigate to="/users" replace />} />
               </Routes>
+              ;
             </DashboardLayout>
           </Box>
-        </ThemeProvider>
-      </AppProvider>
-    </Router>
+        </AppProvider>
+      </Router>
+    </ThemeProvider>
   );
 }

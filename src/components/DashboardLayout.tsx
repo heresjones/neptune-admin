@@ -82,6 +82,30 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             }
           />
         </ListItem>
+        <ListItem component={Link} to="/chart">
+          <ListItemIcon>
+            <DashboardIcon
+              sx={{
+                color: darkMode ? colors.moodyWhite : colors.moodyBlue,
+              }}
+            />
+          </ListItemIcon>
+          <ListItemText
+            primary={
+              <Typography
+                sx={{
+                  fontFamily: "Poppins, sans-serif",
+                  fontWeight: "bold",
+                  fontSize: "18px",
+                  color: darkMode ? colors.lightText : "#000000",
+                }}
+              >
+                Signup Chart
+              </Typography>
+            }
+          />
+        </ListItem>
+
         <ListItem component={Link} to="/map">
           <ListItemIcon>
             <ShoppingCartIcon
@@ -143,9 +167,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
           >
             Neptune Admin
           </Typography>
-          <IconButton sx={{ ml: 1 }} onClick={toggleDarkMode} color="inherit">
-            {darkMode ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
+          {/* Removed the IconButton and kept only the Switch for dark mode toggle */}
           <Switch checked={darkMode} onChange={toggleDarkMode} />
         </Toolbar>
       </AppBar>
